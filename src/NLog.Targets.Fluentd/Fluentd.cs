@@ -207,6 +207,8 @@ namespace NLog.Targets
 
         public bool IncludeAllProperties { get; set; }
 
+        public ISet<string> ExcludeProperties { get; set; }
+
         private TcpClient client;
 
         private Stream stream;
@@ -319,6 +321,9 @@ namespace NLog.Targets
                     if (string.IsNullOrEmpty(propertyKey))
                         continue;
 
+                    if (ExcludeProperties.Contains(propertyKey))
+                        continue;
+
                     record[propertyKey] = SerializePropertyValue(propertyKey, property.Value);
                 }
             }
@@ -369,6 +374,7 @@ namespace NLog.Targets
             this.LingerTime = 1000;
             this.EmitStackTraceWhenAvailable = false;
             this.Tag = "${processname}";
+            this.ExcludeProperties = new HashSet<string>();
         }
     }
 }
