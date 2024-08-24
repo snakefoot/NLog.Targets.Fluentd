@@ -20,9 +20,9 @@ using System.IO;
 using System.Text;
 using System.Net.Sockets;
 using System.Diagnostics;
-using System.Reflection;
 using MsgPack;
 using MsgPack.Serialization;
+using NLog.Layouts;
 
 namespace NLog.Targets
 {
@@ -183,11 +183,11 @@ namespace NLog.Targets
     [Target("Fluentd")]
     public class Fluentd : NLog.Targets.TargetWithLayout
     {
-        public string Host { get; set; }
+        public Layout Host { get; set; }
 
         public int Port { get; set; }
 
-        public string Tag { get; set; }
+        public Layout Tag { get; set; }
 
         public bool NoDelay { get; set; }
 
@@ -246,8 +246,9 @@ namespace NLog.Targets
 
         private void ConnectClient()
         {
-            NLog.Common.InternalLogger.Debug("Fluentd Connecting to {0}:{1}", this.Host, this.Port);
-            this.client.Connect(this.Host, this.Port);
+            string hostName = RenderLogEvent(this.Host, LogEventInfo.CreateNullEvent());
+            NLog.Common.InternalLogger.Debug("Fluentd Connecting to {0}:{1}", hostName, this.Port);
+            this.client.Connect(hostName, this.Port);
             this.stream = this.client.GetStream();
             this.emitter = new FluentdEmitter(this.stream);
         }
@@ -334,7 +335,8 @@ namespace NLog.Targets
 
             try
             {
-                this.emitter?.Emit(logEvent.TimeStamp, this.Tag, record);
+                string tagName = RenderLogEvent(this.Tag, logEvent);
+                this.emitter?.Emit(logEvent.TimeStamp, tagName, record);
             }
             catch (Exception ex)
             {
@@ -366,7 +368,7 @@ namespace NLog.Targets
             this.LingerEnabled = true;
             this.LingerTime = 1000;
             this.EmitStackTraceWhenAvailable = false;
-            this.Tag = Assembly.GetCallingAssembly().GetName().Name;
+            this.Tag = "${processname}";
         }
     }
 }
